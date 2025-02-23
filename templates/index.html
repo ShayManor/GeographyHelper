@@ -1,0 +1,138 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>US States Capitals Quiz</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e') no-repeat center center fixed;
+            background-size: cover;
+            color: #fff;
+        }
+        .overlay {
+            background-color: rgba(0, 0, 0, 0.6);
+            min-height: 100vh;
+            padding-top: 50px;
+        }
+        .card {
+            background-color: rgba(255, 255, 255, 0.9);
+            color: #333;
+        }
+        .footer {
+            position: fixed;
+            bottom: 10px;
+            width: 100%;
+            text-align: center;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <div class="overlay">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-md-6">
+                    <div class="card shadow-lg">
+                        <div class="card-body text-center">
+                            <h2 class="card-title mb-4">US States Capitals Quiz</h2>
+                            <div id="quiz-section">
+                                <p id="question" class="fs-4">Loading...</p>
+                                <input type="text" id="answer" class="form-control mb-3" placeholder="Enter the capital">
+                                <button id="submit-btn" class="btn btn-primary w-100">Submit</button>
+                                <button id="next-btn" class="btn btn-secondary w-100 mt-2 d-none">Next</button>
+                                <p id="feedback" class="mt-3 fs-5"></p>
+                                <div class="mt-4">
+                                    <span>Score: <span id="score">0</span></span> / <span id="total">0</span>
+                                </div>
+                            </div>
+                            <div id="start-section" class="d-none">
+                                <button id="start-btn" class="btn btn-success">Start Quiz</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS and dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const apiBase = 'http://localhost:5000/api';
+        let currentState = '';
+        let score = 0;
+        let total = 0;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            startQuiz();
+            document.getElementById('submit-btn').addEventListener('click', submitAnswer);
+            document.getElementById('next-btn').addEventListener('click', loadQuestion);
+        });
+
+        function startQuiz() {
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            fetch(`${apiBase}/get_question`)
+                .then(response => response.json())
+                .then(data => {
+                    currentState = data.state;
+                    document.getElementById('question').textContent = `What is the capital of ${currentState}?`;
+                    document.getElementById('answer').value = '';
+                    document.getElementById('feedback').textContent = '';
+                    document.getElementById('submit-btn').classList.remove('d-none');
+                    document.getElementById('next-btn').classList.add('d-none');
+                })
+                .catch(error => {
+                    console.error('Error fetching question:', error);
+                    document.getElementById('question').textContent = 'Error loading question. Please try again.';
+                });
+        }
+
+        function submitAnswer() {
+            const userAnswer = document.getElementById('answer').value.trim();
+            if (!userAnswer) {
+                alert('Please enter a capital.');
+                return;
+            }
+
+            fetch(`${apiBase}/check_answer`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ state: currentState, capital: userAnswer })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    document.getElementById('feedback').textContent = data.error;
+                } else {
+                    total++;
+                    if (data.is_correct) {
+                        score++;
+                        document.getElementById('feedback').textContent = 'Correct! Well done.';
+                        document.getElementById('feedback').style.color = 'green';
+                    } else {
+                        document.getElementById('feedback').textContent = `Incorrect. The capital of ${currentState} is ${data.correct_capital}.`;
+                        document.getElementById('feedback').style.color = 'red';
+                    }
+                    document.getElementById('score').textContent = score;
+                    document.getElementById('total').textContent = total;
+                    document.getElementById('submit-btn').classList.add('d-none');
+                    document.getElementById('next-btn').classList.remove('d-none');
+                }
+            })
+            .catch(error => {
+                console.error('Error checking answer:', error);
+                document.getElementById('feedback').textContent = 'Error checking answer. Please try again.';
+            });
+        }
+    </script>
+</body>
+</html>
